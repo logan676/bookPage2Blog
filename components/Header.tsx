@@ -1,41 +1,71 @@
 import React from 'react';
-import { CURRENT_USER_AVATAR } from '../constants';
+import { Menu, LayoutDashboard, PieChart, FileText, Plus } from 'lucide-react';
 
-interface HeaderProps {
-    toggleTheme: () => void;
-    isDarkMode: boolean;
-}
+const Header: React.FC = () => {
+  return (
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-3 sm:px-6 lg:px-10">
+      <div className="flex items-center gap-3">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-black text-white dark:bg-white dark:text-black">
+           <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="size-5"
+          >
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+          </svg>
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">BookPost</h1>
+      </div>
 
-const Header: React.FC<HeaderProps> = ({ toggleTheme, isDarkMode }) => {
-    return (
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#dee2e6] dark:border-gray-700 px-4 sm:px-6 lg:px-8 py-3 bg-white dark:bg-background-dark sticky top-0 z-40">
-            <div className="flex items-center gap-4 text-[#111418] dark:text-white">
-                <span className="material-symbols-outlined text-primary text-3xl select-none">import_contacts</span>
-                <h2 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">BookPage Blog</h2>
-            </div>
-            <div className="flex flex-1 justify-end items-center gap-6">
-                <nav className="hidden md:flex items-center gap-9">
-                    <a className="text-[#111418] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors" href="#">Home</a>
-                    <a className="text-[#111418] dark:text-gray-300 text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors" href="#">New Post</a>
-                </nav>
-                <div className="flex items-center gap-2">
-                     <button
-                        onClick={toggleTheme}
-                        className="flex items-center justify-center rounded-full h-10 w-10 bg-background-light dark:bg-gray-700 text-[#111418] dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                        <span className="material-symbols-outlined text-xl">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
-                    </button>
-                    <button className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 w-10 bg-background-light dark:bg-gray-700 text-[#111418] dark:text-gray-300 gap-2 text-sm font-bold leading-normal tracking-[0.015em] hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                        <span className="material-symbols-outlined text-xl">notifications</span>
-                    </button>
-                    <div
-                        className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-transparent hover:ring-primary/50 transition-all cursor-pointer"
-                        style={{ backgroundImage: `url("${CURRENT_USER_AVATAR}")` }}
-                    />
-                </div>
-            </div>
-        </header>
-    );
+      <div className="hidden md:flex flex-1 items-center justify-end gap-8">
+        <nav className="flex items-center gap-6">
+          <a
+            href="#"
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-primary transition-colors"
+          >
+            <LayoutDashboard size={16} />
+            Dashboard
+          </a>
+          <a
+            href="#"
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-primary transition-colors"
+          >
+            <FileText size={16} />
+            My Posts
+          </a>
+          <a
+            href="#"
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-primary transition-colors"
+          >
+            <PieChart size={16} />
+            Analytics
+          </a>
+        </nav>
+
+        <div className="flex items-center gap-4">
+          <button className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-primary-hover active:scale-95 shadow-sm">
+            <Plus size={18} strokeWidth={3} />
+            <span>New Post</span>
+          </button>
+          <div className="size-10 overflow-hidden rounded-full border-2 border-white shadow-sm dark:border-gray-700">
+             <img
+              src="https://picsum.photos/100/100"
+              alt="User Profile"
+              className="h-full w-full object-cover"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden dark:text-gray-300 dark:hover:bg-gray-800">
+        <Menu size={24} />
+      </button>
+    </header>
+  );
 };
 
 export default Header;
