@@ -37,3 +37,25 @@ export enum ProcessingStatus {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR'
 }
+
+// Post types for gallery/list view
+export interface Post {
+  id: string;
+  title: string;
+  description: string; // Short excerpt or summary
+  fullText?: string;
+  imageUrl: string;
+  publishedDate: string;
+  tags?: string[];
+}
+
+export enum ViewState {
+  GRID = 'GRID',
+  LIST = 'LIST'
+}
+
+export interface CreatePostData {
+  title: string;
+  description: string;
+  imageUrl: string;
+}

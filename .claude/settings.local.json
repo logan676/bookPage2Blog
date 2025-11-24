@@ -3,7 +3,13 @@
     "allow": [
       "Bash(unzip:*)",
       "Bash(tree:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote:*)"
     ],
     "deny": [],
     "ask": []
