@@ -3,6 +3,7 @@ import { BlogPost, Idea } from './types';
 export const CURRENT_USER_AVATAR = "https://lh3.googleusercontent.com/aida-public/AB6AXuAUk9vXu3yQ9KXSM9BnaOW8ALUREHr7FHnEl8LGrwSz6JkxNQgdG8lJ_OOyVolwBWzhgfFLjMwYvpWORoBmPjbWwV1MSQSRfQvSD_6nSwQhLnW013eMEOV2IrErRm4791VGBoKVEfUt8QgO_lkeGV220shHHQTGQCQTme5LnpnmntCG29n7Z-ZuGmqzpyRbNRuH7NcOXegfM9S9NvhfaD0I8QSxpetJG_5gms5ClGaQaiekZYenk3qqX_7FiCUGHNxQc-5q2N-s83s";
 
 export const MOCK_POST: BlogPost = {
+  id: "1", // Mock post ID for development
   title: "Chapter One: The Journey Begins",
   author: "Jane Doe",
   publishDate: "August 15, 2024",

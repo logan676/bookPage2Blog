@@ -6,12 +6,21 @@ export interface Idea {
   timestamp: string;
 }
 
+export interface Underline {
+  id: string;
+  paragraphId: number;
+  text: string;
+  startOffset: number;
+  endOffset: number;
+}
+
 export interface Paragraph {
   id: number;
   text: string;
 }
 
 export interface BlogPost {
+  id?: string;
   title: string;
   author: string;
   publishDate: string;

@@ -4,7 +4,8 @@ import BlogContent from './components/BlogContent';
 import IdeaSidebar from './components/IdeaSidebar';
 import AddIdeaModal from './components/AddIdeaModal';
 import { MOCK_POST, INITIAL_IDEAS } from './constants';
-import { Idea, Paragraph } from './types';
+import { Idea, Underline } from './types';
+import { fetchIdeas, createIdea } from './services/apiService';
 
 const App: React.FC = () => {
   // Theme Management
@@ -29,36 +30,96 @@ const App: React.FC = () => {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Data State
-  const [ideas, setIdeas] = useState<Idea[]>(INITIAL_IDEAS);
-  
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [underlines, setUnderlines] = useState<Underline[]>([]);
+  const [isLoadingIdeas, setIsLoadingIdeas] = useState(true);
+
+  // Debug: Log underlines changes
+  useEffect(() => {
+    console.log('Underlines state changed:', underlines);
+  }, [underlines]);
+
+  // Debug: Add test underline on mount
+  useEffect(() => {
+    setTimeout(() => {
+      console.log('Adding test underline...');
+      const testUnderline: Underline = {
+        id: 'test-1',
+        paragraphId: 1,
+        text: 'ethereal shadows',
+        startOffset: 50,
+        endOffset: 67
+      };
+      setUnderlines([testUnderline]);
+    }, 2000);
+  }, []);
+
+  // Load ideas from backend on mount
+  useEffect(() => {
+    const loadIdeas = async () => {
+      if (MOCK_POST.id) {
+        setIsLoadingIdeas(true);
+        const fetchedIdeas = await fetchIdeas(MOCK_POST.id);
+        setIdeas(fetchedIdeas.length > 0 ? fetchedIdeas : INITIAL_IDEAS);
+        setIsLoadingIdeas(false);
+      }
+    };
+    loadIdeas();
+  }, []);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [targetParagraph, setTargetParagraph] = useState<Paragraph | null>(null);
+  const [targetUnderline, setTargetUnderline] = useState<Underline | null>(null);
 
-  const handleAddIdeaRequest = (paragraph: Paragraph) => {
-    setTargetParagraph(paragraph);
+  const handleAddUnderline = (underline: Underline) => {
+    console.log('Adding underline to state:', underline);
+    setUnderlines([...underlines, underline]);
+    console.log('Total underlines after add:', underlines.length + 1);
+  };
+
+  const handleAddIdeaRequest = (underline: Underline) => {
+    setTargetUnderline(underline);
     setIsModalOpen(true);
   };
 
-  const handleSaveIdea = (quote: string, note: string) => {
-    if (!targetParagraph) return;
+  const handleSaveIdea = async (quote: string, note: string) => {
+    if (!targetUnderline || !MOCK_POST.id) return;
 
-    const newIdea: Idea = {
-      id: `new-idea-${Date.now()}`,
-      paragraphId: targetParagraph.id,
-      quote: quote.trim(),
-      note: note.trim(),
-      timestamp: new Date().toISOString(),
-    };
+    // Save to backend
+    const savedIdea = await createIdea(
+      MOCK_POST.id,
+      targetUnderline.paragraphId,
+      targetUnderline.text,
+      note.trim()
+    );
 
-    setIdeas([...ideas, newIdea]);
+    if (savedIdea) {
+      // Add to local state
+      setIdeas([...ideas, savedIdea]);
+
+      // Remove the underline since it's now an idea
+      setUnderlines(underlines.filter(u => u.id !== targetUnderline.id));
+    } else {
+      // Fallback: add to local state even if backend save failed
+      const newIdea: Idea = {
+        id: `local-idea-${Date.now()}`,
+        paragraphId: targetUnderline.paragraphId,
+        quote: targetUnderline.text,
+        note: note.trim(),
+        timestamp: new Date().toISOString(),
+      };
+      setIdeas([...ideas, newIdea]);
+      setUnderlines(underlines.filter(u => u.id !== targetUnderline.id));
+      console.warn('Failed to save idea to backend, saved locally only');
+    }
+
     setIsModalOpen(false);
-    setTargetParagraph(null);
+    setTargetUnderline(null);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setTargetParagraph(null);
+    setTargetUnderline(null);
   };
 
   const scrollToParagraph = (paragraphId: number) => {
@@ -99,7 +160,7 @@ const App: React.FC = () => {
                 ></div>
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
                     <p className="text-sm text-blue-800 dark:text-blue-300">
-                        <strong>Tip:</strong> Hover over any paragraph in the article to add a new note or highlight.
+                        <strong>Tip:</strong> Select text to underline it, then click underlined text to add your ideas.
                     </p>
                 </div>
               </div>
@@ -107,11 +168,19 @@ const App: React.FC = () => {
 
             {/* Center Column: Blog Content */}
             <div className="order-1 lg:order-2 lg:col-span-5 xl:col-span-6">
-                <BlogContent 
-                    post={MOCK_POST} 
-                    ideas={ideas} 
-                    onAddIdeaRequest={handleAddIdeaRequest} 
+                <BlogContent
+                    post={MOCK_POST}
+                    ideas={ideas}
+                    underlines={underlines}
+                    onAddUnderline={handleAddUnderline}
+                    onAddIdeaRequest={handleAddIdeaRequest}
                 />
+                {/* Debug info */}
+                {underlines.length > 0 && (
+                  <div className="mt-4 p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded text-xs">
+                    <strong>Debug:</strong> {underlines.length} underlines in state
+                  </div>
+                )}
             </div>
 
             {/* Right Column: Ideas Sidebar */}
@@ -123,10 +192,10 @@ const App: React.FC = () => {
         </main>
       </div>
 
-      <AddIdeaModal 
+      <AddIdeaModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        targetParagraph={targetParagraph}
+        targetUnderline={targetUnderline}
         onSave={handleSaveIdea}
       />
     </div>
