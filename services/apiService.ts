@@ -1,4 +1,4 @@
-import { Idea } from '../types';
+import { Idea, Underline } from '../types';
 
 const API_BASE_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
@@ -9,6 +9,14 @@ interface CreateIdeaRequest {
   note: string;
 }
 
+interface CreateUnderlineRequest {
+  post_id: string;
+  paragraphId: number;
+  text: string;
+  startOffset: number;
+  endOffset: number;
+}
+
 interface IdeaResponse {
   id: string;
   post: string;
@@ -17,6 +25,14 @@ interface IdeaResponse {
   note: string;
   created_at: string;
   updated_at: string;
+}
+
+interface UnderlineResponse {
+  id: string;
+  paragraphId: number;
+  text: string;
+  startOffset: number;
+  endOffset: number;
 }
 
 /**
@@ -30,7 +46,9 @@ export const fetchIdeas = async (postId: string): Promise<Idea[]> => {
       throw new Error(`Failed to fetch ideas: ${response.statusText}`);
     }
 
-    const data: IdeaResponse[] = await response.json();
+    const responseData = await response.json();
+    // Django REST Framework returns paginated results
+    const data: IdeaResponse[] = responseData.results || responseData;
 
     // Transform backend format to frontend format
     return data.map(item => ({
@@ -118,6 +136,98 @@ export const deleteIdea = async (ideaId: string): Promise<boolean> => {
     return response.ok;
   } catch (error) {
     console.error('Error deleting idea:', error);
+    return false;
+  }
+};
+
+/**
+ * Fetch all underlines for a specific post
+ */
+export const fetchUnderlines = async (postId: string): Promise<Underline[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/underlines/?post=${postId}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch underlines: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    // Django REST Framework returns paginated results
+    const data: UnderlineResponse[] = responseData.results || responseData;
+
+    // Transform backend format to frontend format
+    return data.map(item => ({
+      id: item.id,
+      paragraphId: item.paragraphId,
+      text: item.text,
+      startOffset: item.startOffset,
+      endOffset: item.endOffset
+    }));
+  } catch (error) {
+    console.error('Error fetching underlines:', error);
+    return []; // Return empty array on error
+  }
+};
+
+/**
+ * Create a new underline
+ */
+export const createUnderline = async (
+  postId: string,
+  paragraphId: number,
+  text: string,
+  startOffset: number,
+  endOffset: number
+): Promise<Underline | null> => {
+  try {
+    const requestBody: CreateUnderlineRequest = {
+      post_id: postId,
+      paragraphId,
+      text,
+      startOffset,
+      endOffset
+    };
+
+    const response = await fetch(`${API_BASE_URL}/api/underlines/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create underline: ${response.statusText}`);
+    }
+
+    const data: UnderlineResponse = await response.json();
+
+    // Transform backend format to frontend format
+    return {
+      id: data.id,
+      paragraphId: data.paragraphId,
+      text: data.text,
+      startOffset: data.startOffset,
+      endOffset: data.endOffset
+    };
+  } catch (error) {
+    console.error('Error creating underline:', error);
+    return null;
+  }
+};
+
+/**
+ * Delete an underline
+ */
+export const deleteUnderline = async (underlineId: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/underlines/${underlineId}/`, {
+      method: 'DELETE'
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error deleting underline:', error);
     return false;
   }
 };

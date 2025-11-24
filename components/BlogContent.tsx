@@ -42,10 +42,15 @@ const BlogContent: React.FC<BlogContentProps> = ({
 
   // Handle text selection
   const handleMouseUp = (paragraph: Paragraph, event: React.MouseEvent) => {
+    console.log('[DEBUG handleMouseUp] Mouse up on paragraph', paragraph.id);
     const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) return;
+    if (!selection || selection.isCollapsed) {
+      console.log('[DEBUG handleMouseUp] No selection or collapsed');
+      return;
+    }
 
     const selectedText = selection.toString().trim();
+    console.log('[DEBUG handleMouseUp] Selected text:', selectedText);
     if (!selectedText) return;
 
     // Get selection position
@@ -108,22 +113,24 @@ const BlogContent: React.FC<BlogContentProps> = ({
         }
       }
 
-      console.log('Adding underline:', { selectedText, startOffset: finalStartOffset, endOffset: finalEndOffset });
+      console.log('[DEBUG handleMouseUp] Adding underline:', { selectedText, startOffset: finalStartOffset, endOffset: finalEndOffset });
 
       // Show bubble asking to underline
-      setBubble({
+      const bubbleState = {
         show: true,
         x: rect.left + rect.width / 2,
         y: rect.top + window.scrollY,
         question: 'Underline this text?',
-        type: 'underline',
+        type: 'underline' as const,
         data: {
           paragraph,
           text: selectedText,
           startOffset: finalStartOffset,
           endOffset: finalEndOffset
         }
-      });
+      };
+      console.log('[DEBUG handleMouseUp] Setting bubble:', bubbleState);
+      setBubble(bubbleState);
     } catch (error) {
       console.error('Error calculating text offsets:', error);
     }
@@ -148,15 +155,27 @@ const BlogContent: React.FC<BlogContentProps> = ({
 
   // Handle bubble Yes/No
   const handleBubbleYes = () => {
+    console.log('[DEBUG handleBubbleYes] ===== FUNCTION CALLED =====');
+    console.log('[DEBUG handleBubbleYes] bubble type:', bubble.type);
+    console.log('[DEBUG handleBubbleYes] bubble data:', bubble.data);
+
     if (bubble.type === 'underline') {
       const { paragraph, text, startOffset, endOffset } = bubble.data;
+
+      console.log('[DEBUG handleBubbleYes] paragraph:', paragraph);
+      console.log('[DEBUG handleBubbleYes] paragraph.id:', paragraph?.id, 'type:', typeof paragraph?.id);
+
       const newUnderline: Underline = {
         id: `underline-${Date.now()}`,
-        paragraphId: paragraph.id,
+        paragraphId: Number(paragraph.id),
         text,
         startOffset,
         endOffset
       };
+
+      console.log('[DEBUG handleBubbleYes] newUnderline created:', newUnderline);
+      console.log('[DEBUG handleBubbleYes] Calling onAddUnderline...');
+
       onAddUnderline(newUnderline);
     } else if (bubble.type === 'idea') {
       onAddIdeaRequest(bubble.data);
@@ -176,29 +195,51 @@ const BlogContent: React.FC<BlogContentProps> = ({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (bubble.show) {
+        // Check if click is on a button inside the bubble
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'BUTTON' || target.closest('button')) {
+          // Don't close if clicking a button - let the button's onClick handler run first
+          return;
+        }
         setBubble({ ...bubble, show: false });
       }
     };
 
     if (bubble.show) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Use 'mousedown' with a slight delay to let button clicks register first
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [bubble.show]);
 
   // Render paragraph with underlines and ideas
   const renderParagraphText = (paragraph: Paragraph) => {
-    const paragraphUnderlines = underlines.filter(u => u.paragraphId === paragraph.id);
-    const paragraphIdeas = ideas.filter(i => i.paragraphId === paragraph.id);
+    console.log(`[DEBUG renderParagraphText] paragraph.id: ${paragraph.id} (type: ${typeof paragraph.id})`);
+    console.log(`[DEBUG renderParagraphText] All underlines:`, underlines);
+    console.log(`[DEBUG renderParagraphText] Underline paragraphIds:`, underlines.map(u => ({ id: u.paragraphId, type: typeof u.paragraphId })));
 
-    if (paragraphUnderlines.length > 0) {
-      console.log(`Rendering paragraph ${paragraph.id} with ${paragraphUnderlines.length} underlines`, paragraphUnderlines);
-    }
+    const paragraphUnderlines = underlines.filter(u => {
+      const match = Number(u.paragraphId) === Number(paragraph.id);
+      console.log(`[DEBUG filter] Comparing u.paragraphId=${u.paragraphId} (${typeof u.paragraphId}) with paragraph.id=${paragraph.id} (${typeof paragraph.id}) => ${match}`);
+      return match;
+    });
+
+    const paragraphIdeas = ideas.filter(i => Number(i.paragraphId) === Number(paragraph.id));
+
+    console.log(`[DEBUG renderParagraphText] Paragraph ${paragraph.id}: found ${paragraphUnderlines.length} underlines`, paragraphUnderlines);
 
     // Combine underlines and ideas with their positions
     const highlights: Array<{ start: number; end: number; type: 'underline' | 'idea'; data: Underline | Idea }> = [];
 
     paragraphUnderlines.forEach(underline => {
+      console.log(`[DEBUG] Adding underline to highlights:`, {
+        start: underline.startOffset,
+        end: underline.endOffset,
+        text: underline.text,
+        paragraphTextLength: paragraph.text.length
+      });
       highlights.push({
         start: underline.startOffset,
         end: underline.endOffset,
@@ -222,7 +263,10 @@ const BlogContent: React.FC<BlogContentProps> = ({
     // Sort by start position
     highlights.sort((a, b) => a.start - b.start);
 
+    console.log(`[DEBUG] Total highlights after sort:`, highlights.length, highlights);
+
     if (highlights.length === 0) {
+      console.log(`[DEBUG] No highlights, returning plain text`);
       return paragraph.text;
     }
 
@@ -230,9 +274,20 @@ const BlogContent: React.FC<BlogContentProps> = ({
     const nodes: React.ReactNode[] = [];
     let lastIndex = 0;
 
+    console.log(`[DEBUG] Building nodes for paragraph ${paragraph.id}`);
+
     highlights.forEach((highlight, index) => {
+      console.log(`[DEBUG] Processing highlight ${index}:`, {
+        type: highlight.type,
+        start: highlight.start,
+        end: highlight.end,
+        lastIndex,
+        text: paragraph.text.substring(highlight.start, highlight.end)
+      });
+
       // Add text before the highlight
       if (highlight.start > lastIndex) {
+        console.log(`[DEBUG] Adding text before highlight: "${paragraph.text.substring(lastIndex, highlight.start)}"`);
         nodes.push(
           <span key={`text-${paragraph.id}-${index}`}>
             {paragraph.text.substring(lastIndex, highlight.start)}
@@ -243,11 +298,19 @@ const BlogContent: React.FC<BlogContentProps> = ({
       // Add the highlighted text
       if (highlight.type === 'underline') {
         const underline = highlight.data as Underline;
+        console.log(`[DEBUG] Adding underline span with classes`);
         nodes.push(
           <span
             key={`underline-${underline.id}`}
             onClick={(e) => handleUnderlineClick(e, underline)}
-            className="decoration-blue-500 decoration-2 underline-offset-2 underline cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors rounded-sm px-0.5 -mx-0.5"
+            style={{
+              textDecoration: 'underline',
+              textDecorationColor: '#3b82f6',
+              textDecorationThickness: '2px',
+              textUnderlineOffset: '2px',
+              cursor: 'pointer'
+            }}
+            className="hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors rounded-sm px-0.5 -mx-0.5"
           >
             {paragraph.text.substring(highlight.start, highlight.end)}
           </span>
@@ -270,12 +333,15 @@ const BlogContent: React.FC<BlogContentProps> = ({
 
     // Add remaining text
     if (lastIndex < paragraph.text.length) {
+      console.log(`[DEBUG] Adding remaining text: "${paragraph.text.substring(lastIndex)}"`);
       nodes.push(
         <span key={`text-end-${paragraph.id}`}>
           {paragraph.text.substring(lastIndex)}
         </span>
       );
     }
+
+    console.log(`[DEBUG] Total nodes created:`, nodes.length);
 
     return nodes;
   };

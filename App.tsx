@@ -5,7 +5,7 @@ import IdeaSidebar from './components/IdeaSidebar';
 import AddIdeaModal from './components/AddIdeaModal';
 import { MOCK_POST, INITIAL_IDEAS } from './constants';
 import { Idea, Underline } from './types';
-import { fetchIdeas, createIdea } from './services/apiService';
+import { fetchIdeas, createIdea, fetchUnderlines, createUnderline } from './services/apiService';
 
 const App: React.FC = () => {
   // Theme Management
@@ -33,48 +33,64 @@ const App: React.FC = () => {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [underlines, setUnderlines] = useState<Underline[]>([]);
   const [isLoadingIdeas, setIsLoadingIdeas] = useState(true);
+  const [isLoadingUnderlines, setIsLoadingUnderlines] = useState(true);
 
-  // Debug: Log underlines changes
+  // Load ideas and underlines from backend on mount
   useEffect(() => {
-    console.log('Underlines state changed:', underlines);
-  }, [underlines]);
-
-  // Debug: Add test underline on mount
-  useEffect(() => {
-    setTimeout(() => {
-      console.log('Adding test underline...');
-      const testUnderline: Underline = {
-        id: 'test-1',
-        paragraphId: 1,
-        text: 'ethereal shadows',
-        startOffset: 50,
-        endOffset: 67
-      };
-      setUnderlines([testUnderline]);
-    }, 2000);
-  }, []);
-
-  // Load ideas from backend on mount
-  useEffect(() => {
-    const loadIdeas = async () => {
+    const loadData = async () => {
       if (MOCK_POST.id) {
         setIsLoadingIdeas(true);
-        const fetchedIdeas = await fetchIdeas(MOCK_POST.id);
-        setIdeas(fetchedIdeas.length > 0 ? fetchedIdeas : INITIAL_IDEAS);
+        setIsLoadingUnderlines(true);
+
+        const [fetchedIdeas, fetchedUnderlines] = await Promise.all([
+          fetchIdeas(MOCK_POST.id),
+          fetchUnderlines(MOCK_POST.id)
+        ]);
+
+        console.log('[DEBUG App loadData] Fetched ideas:', fetchedIdeas);
+        console.log('[DEBUG App loadData] Fetched underlines:', fetchedUnderlines);
+
+        setIdeas(fetchedIdeas);
+        setUnderlines(fetchedUnderlines);
         setIsLoadingIdeas(false);
+        setIsLoadingUnderlines(false);
       }
     };
-    loadIdeas();
+    loadData();
   }, []);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [targetUnderline, setTargetUnderline] = useState<Underline | null>(null);
 
-  const handleAddUnderline = (underline: Underline) => {
-    console.log('Adding underline to state:', underline);
-    setUnderlines([...underlines, underline]);
-    console.log('Total underlines after add:', underlines.length + 1);
+  const handleAddUnderline = async (underline: Underline) => {
+    console.log('[DEBUG App handleAddUnderline] Received underline:', underline);
+    console.log('[DEBUG App handleAddUnderline] Current underlines:', underlines);
+
+    if (!MOCK_POST.id) return;
+
+    // Save to backend
+    const savedUnderline = await createUnderline(
+      MOCK_POST.id,
+      underline.paragraphId,
+      underline.text,
+      underline.startOffset,
+      underline.endOffset
+    );
+
+    if (savedUnderline) {
+      // Add to local state with backend ID
+      const newUnderlines = [...underlines, savedUnderline];
+      setUnderlines(newUnderlines);
+      console.log('[DEBUG App handleAddUnderline] Underline saved to backend:', savedUnderline);
+    } else {
+      // Fallback: add to local state even if backend save failed
+      const newUnderlines = [...underlines, underline];
+      setUnderlines(newUnderlines);
+      console.warn('Failed to save underline to backend, saved locally only');
+    }
+
+    console.log('[DEBUG App handleAddUnderline] Total underlines after add:', underlines.length + 1);
   };
 
   const handleAddIdeaRequest = (underline: Underline) => {
@@ -85,7 +101,7 @@ const App: React.FC = () => {
   const handleSaveIdea = async (quote: string, note: string) => {
     if (!targetUnderline || !MOCK_POST.id) return;
 
-    // Save to backend
+    // Save idea to backend
     const savedIdea = await createIdea(
       MOCK_POST.id,
       targetUnderline.paragraphId,
@@ -94,11 +110,9 @@ const App: React.FC = () => {
     );
 
     if (savedIdea) {
-      // Add to local state
+      // Add idea to local state
       setIdeas([...ideas, savedIdea]);
-
-      // Remove the underline since it's now an idea
-      setUnderlines(underlines.filter(u => u.id !== targetUnderline.id));
+      // Keep the underline - don't delete it
     } else {
       // Fallback: add to local state even if backend save failed
       const newIdea: Idea = {
@@ -109,7 +123,6 @@ const App: React.FC = () => {
         timestamp: new Date().toISOString(),
       };
       setIdeas([...ideas, newIdea]);
-      setUnderlines(underlines.filter(u => u.id !== targetUnderline.id));
       console.warn('Failed to save idea to backend, saved locally only');
     }
 
