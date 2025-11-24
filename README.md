@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # BookPage2Blog
 
 Transform book pages into blog posts with AI-powered OCR and intelligent content analysis. Upload images of book pages, extract text using Google Gemini AI, and convert them into beautifully formatted blog posts with interactive note-taking capabilities.
