@@ -1,0 +1,5 @@
+{
+  "name": "BookPage Blog Reader",
+  "description": "A sophisticated blog reader application allowing users to read chapters, highlight text, and attach personal ideas or notes to specific passages.",
+  "requestFramePermissions": []
+}
